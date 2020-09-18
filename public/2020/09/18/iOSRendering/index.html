@@ -48,7 +48,7 @@
         <div class="article">
     <!-- <div class="article-title">
         <h2>
-            iOSRendering
+            iOSRendering 【待校准格式】
         </h2>
     </div> -->
     <div class="article-meta">
@@ -57,7 +57,7 @@
             2020/09/18 Fri 13:36&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/18 Fri 13:40
+            2020/09/18 Fri 13:49
         </div>
     </div>
     <div class="article-content">
@@ -392,27 +392,41 @@
 <p>Mask在正常业务编程中的使用也非常的多，主要是用于动画，遮挡效果，或者高效渲染圆角等。</p>
 <p>这里主要想补充一些图形学原理：</p>
 <p>Mask使用Alpha做遮蔽，其实就对应shading pipeline的alpha test环节，Alpha<br>Test被用于通过交/差集绘制几何体。</p>
-<p>Alpha Test：</p>
-<p>一种常见的需求是，对某个 fragment 中的某些 primitive<br>进行完全透明的渲染，比如渲染一个链条之类的东西的时候【如上图】。如果我们几何形状去把一个链条给拼接出来，这个数据量是很大的。一种更有效的做法是存储需要渲染为透明的<br>primitive<br>的几何形状，这会大大降低数据量，基本上使用一两个三角就能拼出一个链条的中空。</p>
+<blockquote>
+<p>Alpha Test：<br>一种常见的需求是，对某个 fragment 中的某些 primitive<br>进行完全透明的渲染，比如渲染一个链条之类的东西的时候【如上图】。如果我们几何形状去把一个链条给拼接出来，这个数据量是很大的。一种更有效的做法是存&gt;储需要渲染为透明的<br>primitive<br>的几何形状，这会大大降低数据量，基本上使用一两个三角就能拼出一个链条的中空。</p>
 <p>在传统的固定管线（fixed-function）渲染流程中，这个如果 alpha<br>为0，那么渲染为透明的过程叫做 Alpha Test。</p>
-<p>在openGL ES 3.0中，固定管线流程没有 Alpha Test这一步，但是可以使用<br>discard 关键字来指定该fragment 被渲染为透明。</p>
-<p>一个典型的例子：</p>
+<p>在openGL ES 3.0中，固定管线流程没有 Alpha Test这一步，但是可以使用<br>discard 关键字来指定该fragment 被渲染为透明。<br>一个典型的例子：</p>
+</blockquote>
 <p><img src="image15.png"></p>
-<p>//OpenGL® ES™ 3.0 Programming Guide</p>
-<p>#version 300 es</p>
-<p>precision mediump float;</p>
-<p>uniform sampler2D baseMap;</p>
-<p>in vec2 v_texCoord;</p>
-<p>layout( location = 0 ) out vec4 outColor;void main( void )</p>
-<p>{</p>
-<p>vec4 baseColor = texture( baseMap, v_texCoord );</p>
-<p>// Discard all fragments with alpha value less than 0.25</p>
-<p>if (baseColor.a &lt; 0.25) {</p>
-<p>discard;</p>
-<p>} else{</p>
-<p>outColor = baseColor;</p>
-<p>}</p>
-<p>}</p>
+<pre><code>//OpenGL® ES™ 3.0 Programming Guide
+
+\#version 300 es
+
+precision mediump float;
+
+uniform sampler2D baseMap;
+
+in vec2 v_texCoord;
+
+layout( location = 0 ) out vec4 outColor;void main( void )
+
+&#123;
+
+vec4 baseColor = texture( baseMap, v_texCoord );
+
+// Discard all fragments with alpha value less than 0.25
+
+if (baseColor.a \&lt; 0.25) &#123;
+
+discard;
+
+&#125; else&#123;
+
+outColor = baseColor;
+
+&#125;
+
+&#125;</code></pre>
 <p>alpha mask降低图元的方法是双刃剑，首先Alpha Test必然受深度缓存（Z<br>buffer）的影响，在TBDR/TBR架构下，Alpha<br>Test的工作流程非常复杂，但好在是个黑盒，苹果处理好了这些细节。</p>
 <p>TODO</p>
 <p><strong>监控GPU渲染</strong></p>
