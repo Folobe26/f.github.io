@@ -153,6 +153,8 @@ RunLoop 的waiting/wake的核心就是一个 mach_msg()，当一个RunLoop处理
 1.指定一个将来唤醒自己的mach_port端口
 2.调用mach_msg来监听这个端口，保持mach_msg_trap状态
 3.由另一个线程（比如有可能有一个专门处理键盘输入事件的loop在后台一直运行）向内核发送这个端口的msg后，mach_msg_trap状态被唤醒，RunLoop继续运行
+
+```
 //通知即将休眠
 //__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__(kCFRunLoopBeforeWaiting);
 //——————————————————————————————————————————
@@ -176,7 +178,7 @@ if (kCFUseCollectableAllocator) {
 //__CFRunLoopServiceMachPort使线程处于trap状态，直到获得msg返回或者什么异常返回
 //内部封装的mach_msg逻辑
 
-    
+
 __CFRunLoopLock(rl);//pthread lock
 __CFRunLoopModeLock(rlm); //pthread lock
 
@@ -185,9 +187,10 @@ __CFPortSetRemove(dispatchPort, waitSet);
 rl->_ignoreWakeUps = true;
 //---------------------------------------
 //通知从休眠中唤醒
+```
 
 下面看下 __CFRunLoopServiceMachPort是如何调用mach_msg的
-
+```
 static Boolean __CFRunLoopServiceMachPort(mach_port_name_t port, mach_msg_header_t **buffer, size_t buffer_size, mach_msg_timeout_t timeout) {
     Boolean originalBuffer = true;
     for (;;) {                
@@ -215,6 +218,7 @@ static Boolean __CFRunLoopServiceMachPort(mach_port_name_t port, mach_msg_header
     HALT;
     return false;
 }
+```
 
 如何让线程从mach_msg中退出：
 
@@ -226,7 +230,9 @@ CADisplayLink
 深入聊一下CADisplayLink
 ![img](image6.png)
 我们发现这是一个从port转发过来的，我们打印一下runloop，发现：
+```
 2 : <CFRunLoopSource 0x282dc8000 [0x1cadcf728]>{signalled = No, valid = Yes, order = -1, context = <CFMachPort 0x282fd8160 [0x1cadcf728]>{valid = Yes, port = 440b, source = 0x282dc8000, callout = <redacted> (0x19085e28c), context = <CFMachPort context 0x2823d0000>}}
+```
 有这样一个source 1被加入了runloop，这个port应该就是V-Sync信号转发过来的port，V-sync信号通过每16.7ms的mach msg转发，不断的激活本app的runloop，触发一个item。
 这里看到item，很自然的联想到这里是不是一个链表之类的数据结构。实际上，我们可以多次添加不同的CADisplayLink instance到runloop中，就像这样：
 ![img](image7.png)
@@ -378,7 +384,7 @@ Alpha Test：
 一种常见的需求是，对某个 fragment 中的某些 primitive 进行完全透明的渲染，比如渲染一个链条之类的东西的时候【如上图】。如果我们几何形状去把一个链条给拼接出来，这个数据量是很大的。一种更有效的做法是存储需要渲染为透明的 primitive 的几何形状，这会大大降低数据量，基本上使用一两个三角就能拼出一个链条的中空。
 
 在传统的固定管线（fixed-function）渲染流程中，这个如果 alpha 为0，那么渲染为透明的过程叫做 Alpha Test。
- 
+
 在openGL ES 3.0中，固定管线流程没有 Alpha Test这一步，但是可以使用 discard 关键字来指定该fragment 被渲染为透明。
 一个典型的例子：
 

@@ -57,7 +57,7 @@
             2020/09/18 Fri 13:36&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/18 Fri 18:28
+            2020/09/18 Fri 18:38
         </div>
     </div>
     <div class="article-content">
@@ -176,19 +176,72 @@
 <li>runloop如何wakeup？</li>
 </ul>
 <p>我们知道Runloop的基本流程是：<br>typedef CF_OPTIONS(CFOptionFlags, CFRunLoopActivity) {<br>    kCFRunLoopEntry = (1UL &lt;&lt; 0),//即将进入<br>    kCFRunLoopBeforeTimers = (1UL &lt;&lt; 1),//处理timer前<br>    kCFRunLoopBeforeSources = (1UL &lt;&lt; 2),//处理source0前<br>    kCFRunLoopBeforeWaiting = (1UL &lt;&lt; 5),//休眠前<br>    kCFRunLoopAfterWaiting = (1UL &lt;&lt; 6),//休眠后，刚唤醒<br>    kCFRunLoopExit = (1UL &lt;&lt; 7),//退出<br>    kCFRunLoopAllActivities = 0x0FFFFFFFU//全部事件<br>};<br><img src="image4.png" alt="img"><br>本图中source0后的port错误，source 0不基于port</p>
-<p>RunLoop 的waiting/wake的核心就是一个 mach_msg()，当一个RunLoop处理完事件后，即将进入休眠时，会经历下面几步：<br>1.指定一个将来唤醒自己的mach_port端口<br>2.调用mach_msg来监听这个端口，保持mach_msg_trap状态<br>3.由另一个线程（比如有可能有一个专门处理键盘输入事件的loop在后台一直运行）向内核发送这个端口的msg后，mach_msg_trap状态被唤醒，RunLoop继续运行<br>//通知即将休眠<br>//<strong>CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION</strong>(kCFRunLoopBeforeWaiting);<br>//——————————————————————————————————————————<br>//——————————————————————————————————————————</p>
-<p>//进入内核态</p>
-<p>__CFRunLoopSetSleeping(rl);//单纯的给runloop的struct设置一下状态flag<br>__CFPortSetInsert(dispatchPort, waitSet);//进入msg trap</p>
-<p>__CFRunLoopModeUnlock(rlm);//pthread unlock<br>__CFRunLoopUnlock(rl);//pthread unlock</p>
-<p>if (kCFUseCollectableAllocator) {<br>    objc_clear_stack(0);<br>    memset(msg_buffer, 0, sizeof(msg_buffer));<br>}<br>    msg = (mach_msg_header_t *)msg_buffer;<br>    __CFRunLoopServiceMachPort(waitSet, &amp;msg, sizeof(msg_buffer), poll ? 0 : TIMEOUT_INFINITY);<br>//Boolean poll = sourceHandledThisLoop || (0LL == timeout_context-&gt;termTSR);<br>//__CFRunLoopServiceMachPort使线程处于trap状态，直到获得msg返回或者什么异常返回<br>//内部封装的mach_msg逻辑</p>
-<p>__CFRunLoopLock(rl);//pthread lock<br>__CFRunLoopModeLock(rlm); //pthread lock</p>
-<pre><code>    // Must remove the local-to-this-activation ports in on every loop        // iteration, as this mode could be run re-entrantly and we don&#39;t        // want these ports to get serviced. Also, we don&#39;t want them left        // in there if this function returns.</code></pre>
-<p>__CFPortSetRemove(dispatchPort, waitSet);<br>rl-&gt;_ignoreWakeUps = true;<br>//—————————————<br>//通知从休眠中唤醒</p>
+<p>RunLoop 的waiting/wake的核心就是一个 mach_msg()，当一个RunLoop处理完事件后，即将进入休眠时，会经历下面几步：<br>1.指定一个将来唤醒自己的mach_port端口<br>2.调用mach_msg来监听这个端口，保持mach_msg_trap状态<br>3.由另一个线程（比如有可能有一个专门处理键盘输入事件的loop在后台一直运行）向内核发送这个端口的msg后，mach_msg_trap状态被唤醒，RunLoop继续运行</p>
+<pre><code>//通知即将休眠
+//__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__(kCFRunLoopBeforeWaiting);
+//——————————————————————————————————————————
+//——————————————————————————————————————————
+
+//进入内核态
+
+__CFRunLoopSetSleeping(rl);//单纯的给runloop的struct设置一下状态flag
+__CFPortSetInsert(dispatchPort, waitSet);//进入msg trap
+
+__CFRunLoopModeUnlock(rlm);//pthread unlock
+__CFRunLoopUnlock(rl);//pthread unlock
+
+if (kCFUseCollectableAllocator) &#123;
+    objc_clear_stack(0);
+    memset(msg_buffer, 0, sizeof(msg_buffer));
+&#125;
+    msg = (mach_msg_header_t *)msg_buffer;
+    __CFRunLoopServiceMachPort(waitSet, &amp;msg, sizeof(msg_buffer), poll ? 0 : TIMEOUT_INFINITY);
+//Boolean poll = sourceHandledThisLoop || (0LL == timeout_context-&gt;termTSR);
+//__CFRunLoopServiceMachPort使线程处于trap状态，直到获得msg返回或者什么异常返回
+//内部封装的mach_msg逻辑
+
+
+__CFRunLoopLock(rl);//pthread lock
+__CFRunLoopModeLock(rlm); //pthread lock
+
+        // Must remove the local-to-this-activation ports in on every loop        // iteration, as this mode could be run re-entrantly and we don&#39;t        // want these ports to get serviced. Also, we don&#39;t want them left        // in there if this function returns.
+__CFPortSetRemove(dispatchPort, waitSet);
+rl-&gt;_ignoreWakeUps = true;
+//---------------------------------------
+//通知从休眠中唤醒</code></pre>
 <p>下面看下 __CFRunLoopServiceMachPort是如何调用mach_msg的</p>
-<p>static Boolean __CFRunLoopServiceMachPort(mach_port_name_t port, mach_msg_header_t *<em>buffer, size_t buffer_size, mach_msg_timeout_t timeout) {<br>    Boolean originalBuffer = true;<br>    for (;;) {<br>/</em> In that sleep of death what nightmares may come … */<br>        mach_msg_header_t *msg = (mach_msg_header_t *)*buffer;<br>        msg-&gt;msgh_bits = 0;<br>        msg-&gt;msgh_local_port = port;<br>        msg-&gt;msgh_remote_port = MACH_PORT_NULL;<br>        msg-&gt;msgh_size = buffer_size;<br>        msg-&gt;msgh_id = 0;<br>        kern_return_t ret = mach_msg(msg, MACH_RCV_MSG|MACH_RCV_LARGE|((TIMEOUT_INFINITY != timeout) ? MACH_RCV_TIMEOUT : 0)|MACH_RCV_TRAILER_TYPE(MACH_MSG_TRAILER_FORMAT_0)|MACH_RCV_TRAILER_ELEMENTS(MACH_RCV_TRAILER_AV), 0, msg-&gt;msgh_size, port, timeout, MACH_PORT_NULL);<br>//mach_msg基于timeout事件决定停留在内核态的时间，调用后如果能获得信息，则设置在msg中，然后返回，否则停留在msg_trap<br>        if (MACH_MSG_SUCCESS == ret) return true;<br>        if (MACH_RCV_TIMED_OUT == ret) {<br>            if (!originalBuffer) free(msg);<br>            *buffer = NULL;<br>            return false;<br>        }<br>        if (MACH_RCV_TOO_LARGE != ret) break;<br>        buffer_size = round_msg(msg-&gt;msgh_size + MAX_TRAILER_SIZE);<br>        if (originalBuffer) *buffer = NULL;<br>        originalBuffer = false;<br>        *buffer = realloc(*buffer, buffer_size);<br>    }<br>    HALT;<br>    return false;<br>}</p>
+<pre><code>static Boolean __CFRunLoopServiceMachPort(mach_port_name_t port, mach_msg_header_t **buffer, size_t buffer_size, mach_msg_timeout_t timeout) &#123;
+    Boolean originalBuffer = true;
+    for (;;) &#123;                
+/* In that sleep of death what nightmares may come ... */
+        mach_msg_header_t *msg = (mach_msg_header_t *)*buffer;
+        msg-&gt;msgh_bits = 0;
+        msg-&gt;msgh_local_port = port;
+        msg-&gt;msgh_remote_port = MACH_PORT_NULL;
+        msg-&gt;msgh_size = buffer_size;
+        msg-&gt;msgh_id = 0;
+        kern_return_t ret = mach_msg(msg, MACH_RCV_MSG|MACH_RCV_LARGE|((TIMEOUT_INFINITY != timeout) ? MACH_RCV_TIMEOUT : 0)|MACH_RCV_TRAILER_TYPE(MACH_MSG_TRAILER_FORMAT_0)|MACH_RCV_TRAILER_ELEMENTS(MACH_RCV_TRAILER_AV), 0, msg-&gt;msgh_size, port, timeout, MACH_PORT_NULL);
+//mach_msg基于timeout事件决定停留在内核态的时间，调用后如果能获得信息，则设置在msg中，然后返回，否则停留在msg_trap
+        if (MACH_MSG_SUCCESS == ret) return true;
+        if (MACH_RCV_TIMED_OUT == ret) &#123;
+            if (!originalBuffer) free(msg);
+            *buffer = NULL;
+            return false;
+        &#125;
+        if (MACH_RCV_TOO_LARGE != ret) break;
+        buffer_size = round_msg(msg-&gt;msgh_size + MAX_TRAILER_SIZE);
+        if (originalBuffer) *buffer = NULL;
+        originalBuffer = false;
+        *buffer = realloc(*buffer, buffer_size);
+    &#125;
+    HALT;
+    return false;
+&#125;</code></pre>
 <p>如何让线程从mach_msg中退出：</p>
 <p>其他进程通过CFNotificationcenter发送mach_msg<br>通过hook mach_msg，监控所有发送过来的mach_msg<br><img src="image5.png" alt="img"></p>
-<p>CADisplayLink<br>深入聊一下CADisplayLink<br><img src="image6.png" alt="img"><br>我们发现这是一个从port转发过来的，我们打印一下runloop，发现：<br>2 : &lt;CFRunLoopSource 0x282dc8000 [0x1cadcf728]&gt;{signalled = No, valid = Yes, order = -1, context = &lt;CFMachPort 0x282fd8160 [0x1cadcf728]&gt;{valid = Yes, port = 440b, source = 0x282dc8000, callout = <redacted> (0x19085e28c), context = &lt;CFMachPort context 0x2823d0000&gt;}}<br>有这样一个source 1被加入了runloop，这个port应该就是V-Sync信号转发过来的port，V-sync信号通过每16.7ms的mach msg转发，不断的激活本app的runloop，触发一个item。<br>这里看到item，很自然的联想到这里是不是一个链表之类的数据结构。实际上，我们可以多次添加不同的CADisplayLink instance到runloop中，就像这样：<br><img src="image7.png" alt="img"><br>但是如果这样<br><img src="image8.png" alt="img"><br>会发生什么呢？<br>drawSomeThing在一个V-sync里被触发了两次。<br>原因是：<br>[CADisplayLink displayLinkWithTarget:self selector:@selector(drawSomeThing)]<br>内部=&gt;[CADisplayLink displayLinkWithDisplay:target:selector:]<br>内部新生成了一个DisplayLinkItem (v8)<br><img src="image9.png" alt="img"><br>调用[CADisplayLink addToRunLoop:forMode:]时，内部：<br><img src="image10.png" alt="img"><br>只检测了：</p>
+<p>CADisplayLink<br>深入聊一下CADisplayLink<br><img src="image6.png" alt="img"><br>我们发现这是一个从port转发过来的，我们打印一下runloop，发现：</p>
+<pre><code>2 : &lt;CFRunLoopSource 0x282dc8000 [0x1cadcf728]&gt;&#123;signalled = No, valid = Yes, order = -1, context = &lt;CFMachPort 0x282fd8160 [0x1cadcf728]&gt;&#123;valid = Yes, port = 440b, source = 0x282dc8000, callout = &lt;redacted&gt; (0x19085e28c), context = &lt;CFMachPort context 0x2823d0000&gt;&#125;&#125;</code></pre>
+<p>有这样一个source 1被加入了runloop，这个port应该就是V-Sync信号转发过来的port，V-sync信号通过每16.7ms的mach msg转发，不断的激活本app的runloop，触发一个item。<br>这里看到item，很自然的联想到这里是不是一个链表之类的数据结构。实际上，我们可以多次添加不同的CADisplayLink instance到runloop中，就像这样：<br><img src="image7.png" alt="img"><br>但是如果这样<br><img src="image8.png" alt="img"><br>会发生什么呢？<br>drawSomeThing在一个V-sync里被触发了两次。<br>原因是：<br>[CADisplayLink displayLinkWithTarget:self selector:@selector(drawSomeThing)]<br>内部=&gt;[CADisplayLink displayLinkWithDisplay:target:selector:]<br>内部新生成了一个DisplayLinkItem (v8)<br><img src="image9.png" alt="img"><br>调用[CADisplayLink addToRunLoop:forMode:]时，内部：<br><img src="image10.png" alt="img"><br>只检测了：</p>
 <ul>
 <li>如果这个displayLink已经被加入到其他runloop中，直接抛出exception</li>
 <li>如果重复添加某个mode，则直接return【runloop仍然为link的runloop】<br>所以新的item会被顺利加入，然后每次vsync触发两次。</li>
