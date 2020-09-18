@@ -1,5 +1,5 @@
 ---
-title: lldb
+title: LLDB
 date: 2020-09-18 11:47:22
 tags:
 ---
@@ -11,8 +11,7 @@ image等相关概念。
 
 想要学习LLDB，首先要简单了解一下LLVM的结构：
 
-![](image1.png){width="5.8125in"
-height="2.1458333333333335in"}
+![](image1.png)
 
 LLVM IR是一个complete code representation。同时是LLVM
 Optimizer的唯一接口，所以LLVM的前端这个概念就等价于LLVM IR是什么，LLVM
@@ -266,9 +265,7 @@ libsystem_c.dylib的base是0x7fff83f32000，其他同理。
 
 //进一下汇编
 
-![](image2.png){width="6.041666666666667in"
-height="3.5625in"}
-
+![](image2.png)
 //看到这里有一个testb和jne
 
 //不出所料，在这里直接跳走了，啥也没干
