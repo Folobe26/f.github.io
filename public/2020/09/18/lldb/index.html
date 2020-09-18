@@ -48,7 +48,7 @@
         <div class="article">
     <!-- <div class="article-title">
         <h2>
-            lldb
+            LLDB
         </h2>
     </div> -->
     <div class="article-meta">
@@ -57,14 +57,14 @@
             2020/09/18 Fri 11:47&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/18 Fri 13:01
+            2020/09/18 Fri 13:20
         </div>
     </div>
     <div class="article-content">
         <p>【Archive】LLDB - A debugger powered by LLVM</p>
 <p>关于LLDB之前有过一次简单的介绍，主要介绍了一些由xcode已经提供了的高效breakpoint设置方法，例如符号断点，objc-exception断点等，也提到了<br>image等相关概念。</p>
 <p>想要学习LLDB，首先要简单了解一下LLVM的结构：</p>
-<p><img src="image1.png">{width=”5.8125in”<br>height=”2.1458333333333335in”}</p>
+<p><img src="image1.png"></p>
 <p>LLVM IR是一个complete code representation。同时是LLVM<br>Optimizer的唯一接口，所以LLVM的前端这个概念就等价于LLVM IR是什么，LLVM<br>IR是怎么工作的，以及LLVM IR的规则。</p>
 <p>LLVM是一堆库的集合。LLVM被设计为一堆libraries的集合，而不是像GCC一样就是一整个玩意，也不像JVM或者.NET一样不透明，这使我们能够利用丰富的接口创作新的🔧。</p>
 <p>LLDB本质上是依附于LLVM的一个工程，使用了LLVM的IR（Clang）作为parser来解析命令，使用LLVM<br>JIT来转换为target code ，使用LLVM disassembler、LLVM Target来处理calling<br>convention。</p>
@@ -182,8 +182,7 @@
 <p>//设置系统StatusBar的代码</p>
 <p>//但是我遇到了设置完也没用的场景</p>
 <p>//进一下汇编</p>
-<p><img src="image2.png">{width=”6.041666666666667in”<br>height=”3.5625in”}</p>
-<p>//看到这里有一个testb和jne</p>
+<p><img src="image2.png"><br>//看到这里有一个testb和jne</p>
 <p>//不出所料，在这里直接跳走了，啥也没干</p>
 <p>//如果不看汇编</p>
 <p>//如果使用的是某个库，我们能捞到某个变量的地址，但是看不到源码，只有一个API，但是出现了不符合预期的结果，我觉得比较有效的一个手段就是</p>
