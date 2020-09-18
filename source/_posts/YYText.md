@@ -1,6 +1,8 @@
 ---
-title: YYText 【待校准格式】
+title: YYText 
 ---
+【待校准格式】
+
 
 先看Github repo的架构图
 

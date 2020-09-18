@@ -1,8 +1,11 @@
 ---
-title: iOSRendering 【待校准格式】
+title: iOSRendering 
 date: 2020-09-18 13:36:02
 tags:
 ---
+
+【待校准格式】
+
 **【Aug】深入理解 iOS 渲染和动画**
 
 面向中级工程师，阅读本文的要求：
