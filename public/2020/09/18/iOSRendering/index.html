@@ -57,7 +57,7 @@
             2020/09/18 Fri 13:36&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/18 Fri 18:38
+            2020/09/19 Sat 01:16
         </div>
     </div>
     <div class="article-content">
@@ -267,9 +267,35 @@ rl-&gt;_ignoreWakeUps = true;
 <li>QuartzCore的CATransaction注册了一个</li>
 <li>GraphicsService注册的基于port的source1</li>
 </ul>
-<p>在前面我们有说，autoReleasePool是在runloop启动时就生成了一个基本的pool来使用，而transaction则是有需要才建立的，这一步是怎么处理的呢？<br>前面我们看到，CATransaction注册了beforewaiting的事件，在beforewaiting的时候，CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)，下面分析一下callback做了什么，下图左边为父节点，右边为子节点。<br><img src="image11.png" alt="img"><br><img src="image12.png" alt="img"><br>CATransaction</p>
+<p>在前面我们有说，autoReleasePool是在runloop启动时就生成了一个基本的pool来使用，而transaction则是有需要才建立的，这一步是怎么处理的呢？<br>前面我们看到，CATransaction注册了beforewaiting的事件，在beforewaiting的时候，CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)，下面分析一下callback里主要调用CA::Transaction::commit()。接下来我们研究一下CATransaction机制，并讲解CA::Transaction::commit()做了什么。</p>
+<p>CATransaction</p>
 <p>整个CoreAnimation的工作流程核心，它不是对openGLES的封装的，也没有做动画插值。它是一个载体，大部分业务需求的WorkFlow都是基于CATransaction完成的。</p>
-<p>基础的用法，begin，commit，timingfunction，complete handler，隐式事务，runloop中的大Transaction我们就不谈了，不清楚的同学可以自行查阅相关已有资料。我们主要通过逆向来研究上图中，CA::Transaction::Commit()的调用逻辑。<br>右侧节点为caller<br><img src="image13.png" alt="img"></p>
+<p>基础的用法，begin，commit，timingfunction，complete handler，隐式事务，runloop中的大Transaction我们就不谈了，不清楚的同学可以自行查阅相关已有资料。</p>
+<p>CA::Transaction::Commit()的被调用逻辑：</p>
+<p>CA::Transaction::Commit 主要由</p>
+<ul>
+<li>Runloop结束时的callback调用</li>
+<li>调用[CATransaction Flush]时调用</li>
+<li>自己的递归调用</li>
+</ul>
+<p>CA::Transaction::Commit 内部主要逻辑如下：</p>
+<p><img src="image11.png" alt="img"></p>
+<p>可以看到，我们主要做了这几件事情：</p>
+<ul>
+<li>对 layer tree 调用 layoutIfNeeded</li>
+<li>通过mach与其他线程通信</li>
+<li>commitIfNeeded</li>
+<li>处理Animation</li>
+</ul>
+<p>下面看commitIfNeeded中的具体逻辑：</p>
+<p><img src="image12.png" alt="img"></p>
+<ul>
+<li>调用 [CALayer _copyRenderLayer:layerFlags:commitFlags]<ul>
+<li>基于这个layer的各种属性，创建CA::Render::Object *</li>
+<li>调用CA::Render::encode_set_object()，把前面创建的render obj set进去</li>
+</ul>
+</li>
+</ul>
 <p>至此，在某次runloop运行的16.7ms的时间中，CPU部分就已经说明白了，主要解答了以下问题</p>
 <ul>
 <li>比如一个VC的viewDidLoad什么时候执行，layoutSubviews什么时候触发等等生命周期问题</li>

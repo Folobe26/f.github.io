@@ -291,20 +291,43 @@ source1:基于port，注册mach port，通过这个mach port被外部进程IPC�
 - GraphicsService注册的基于port的source1
 
 在前面我们有说，autoReleasePool是在runloop启动时就生成了一个基本的pool来使用，而transaction则是有需要才建立的，这一步是怎么处理的呢？
-前面我们看到，CATransaction注册了beforewaiting的事件，在beforewaiting的时候，CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)，下面分析一下callback做了什么，下图左边为父节点，右边为子节点。
-![img](image11.png)
-![img](image12.png)
+前面我们看到，CATransaction注册了beforewaiting的事件，在beforewaiting的时候，CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)，下面分析一下callback里主要调用CA::Transaction::commit()。接下来我们研究一下CATransaction机制，并讲解CA::Transaction::commit()做了什么。
+
 CATransaction
 
 整个CoreAnimation的工作流程核心，它不是对openGLES的封装的，也没有做动画插值。它是一个载体，大部分业务需求的WorkFlow都是基于CATransaction完成的。
 
-基础的用法，begin，commit，timingfunction，complete handler，隐式事务，runloop中的大Transaction我们就不谈了，不清楚的同学可以自行查阅相关已有资料。我们主要通过逆向来研究上图中，CA::Transaction::Commit()的调用逻辑。
-右侧节点为caller
-![img](image13.png)
+基础的用法，begin，commit，timingfunction，complete handler，隐式事务，runloop中的大Transaction我们就不谈了，不清楚的同学可以自行查阅相关已有资料。
 
+CA::Transaction::Commit()的被调用逻辑：
 
+CA::Transaction::Commit 主要由
+
+- Runloop结束时的callback调用
+- 调用[CATransaction Flush]时调用
+- 自己的递归调用
+
+CA::Transaction::Commit 内部主要逻辑如下：
+
+![img](image11.png)
+
+可以看到，我们主要做了这几件事情：
+
+- 对 layer tree 调用 layoutIfNeeded
+- 通过mach与其他线程通信
+- commitIfNeeded
+- 处理Animation
+
+下面看commitIfNeeded中的具体逻辑：
+
+![img](image12.png)
+
+- 调用 [CALayer _copyRenderLayer:layerFlags:commitFlags]
+  - 基于这个layer的各种属性，创建CA::Render::Object *
+  - 调用CA::Render::encode_set_object()，把前面创建的render obj set进去
 
 至此，在某次runloop运行的16.7ms的时间中，CPU部分就已经说明白了，主要解答了以下问题
+
 - 比如一个VC的viewDidLoad什么时候执行，layoutSubviews什么时候触发等等生命周期问题
 - 为什么我在一个UIButton的点击事件里做了一个动画可以顺利的展示出来？动画是怎么生成的？
 
