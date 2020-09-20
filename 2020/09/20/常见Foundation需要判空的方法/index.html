@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>
+        F010BE
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico" />
+    <link rel="stylesheet" href="/css/style/github.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+    <div class="container">
+        <div class="header">
+    <!-- <div class="logo">
+        <a href="/">F010BE</a>
+    </div> -->
+    <div class="logo">
+        <img src="/images/logo.png" alt="Logo">
+    </div>
+    <div class="nav">
+        <ul class="menu">
+            
+                <li class="menu-item">
+                    <a href="/" class="menu-item-link">
+                        Home
+                    </a>
+                </li>
+            
+                <li class="menu-item">
+                    <a target="_blank" rel="noopener" href="https://github.com/loveminimal" class="menu-item-link">
+                        Github
+                    </a>
+                </li>
+                
+        </ul>
+    </div>
+</div>
+        <div class="article">
+    <!-- <div class="article-title">
+        <h2>
+            常见Foundation需要判空的方法
+        </h2>
+    </div> -->
+    <div class="article-meta">
+        <div class="article-date">
+            <i class="fas fa-edit"></i>
+            2020/09/20 Sun 20:52&nbsp;&nbsp;&nbsp;
+            <span class="just-a-temp"><span>
+            <i class="fas fa-redo"></i>
+            2020/09/20 Sun 20:52
+        </div>
+    </div>
+    <div class="article-content">
+        <p>【Feb】常用Foundation中需要对参数判空/判值的方法</p>
+<p>Foundation中的类是日常开发中最常使用的，由于OC没有可选类型，很多时候要手动添加空判断，否则可能会因为一些外部原因导致大量的线上crash。</p>
+<p>Collection              NS_ASSUME_NONNULL_BEGIN/END</p>
+<ul>
+<li>NSArray</li>
+</ul>
+<p><strong>NSArray的整个头文件是被NS_ASSUME_NONNULL_BEGIN/END包住的</strong>，所以理论上没有特别标明nullable的都需要传入前判空，检查下来，只有个别方法的context/option之类的作用的参数表明了nullable。下面列举几个高频使用的：</p>
+<ul>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcAwvVoPlz">- initWithObjects:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hctSRELWv5">- indexOfObject:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcvvy16NAh">- objectsAtIndexes:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcc0rXmtUu">- arrayByAddingObject:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcYSNYYseL">- arrayByAddingObjectsFromArray:</a></p>
+</li>
+<li><p>NSMutableArray</p>
+</li>
+</ul>
+<p><strong>NSMutableArray也是被NS_ASSUME_NONNULL_BEGIN/END包住的。</strong></p>
+<ul>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcqhh_qX0z">- addObject:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hc1vi7SemO">- addObjectsFromArray:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcObePqE4s">- insertObject:atIndex:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hc7qpyAnwh">- insertObjects:atIndexes:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcwYFGOkyI">- removeObject:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hc8eQ4jmC6">- removeObject:inRange:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hc96sYh-Ha">- removeObjectsAtIndexes:</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcP98I2W3-">- replaceObjectAtIndex:withObject:</a></p>
+</li>
+<li><p>NSDictionary </p>
+</li>
+</ul>
+<p>NSDictionary的崩溃大部分是对语法糖/下标语法理解不够导致的。</p>
+<p>这里还是讨论方法和KVC为主</p>
+<p>KVC的方法定义：</p>
+<ul>
+<li><ul>
+<li>(<strong>nullable</strong> <strong>id</strong>)valueForKey:(NSString *)key;</li>
+</ul>
+</li>
+<li><ul>
+<li>valueForKey在NSKeyValueCoding协议中有详细的流程描述</li>
+</ul>
+</li>
+<li><ul>
+<li>(<strong>void</strong>)setValue:(<strong>nullable</strong> <strong>id</strong>)value forUndefinedKey:(NSString *)key;</li>
+</ul>
+</li>
+</ul>
+<p>仍然是Key一定不能为空。</p>
+<p>NSDictionary方法：</p>
+<ul>
+<li><ul>
+<li>(<strong>nullable</strong> ObjectType)objectForKey:</li>
+</ul>
+</li>
+</ul>
+<p>NSMutableDictionary方法：</p>
+<ul>
+<li><ul>
+<li>(<strong>void</strong>)setObject:(ObjectType)anObject forKey:(KeyType <NSCopying>)aKey</li>
+</ul>
+</li>
+</ul>
+<p><strong>这里是不能为空的</strong></p>
+<p>所以在track的时候，我们要尽量使用下标语法而不是setObjectForKey或者@{}的语法糖。使用KVC也行，但是比较奇怪。</p>
+<ul>
+<li><p>NSSet </p>
+</li>
+<li><p>NSIndexPath</p>
+</li>
+<li><p>NSCache</p>
+</li>
+<li><p>NSCache是类似NSDictionary的集合类，是线程安全的。</p>
+</li>
+<li><p>- setObject:forKey: // 0 cost</p>
+</li>
+<li><p>- setObject:forKey:cost:</p>
+</li>
+</ul>
+<p>跟Dictionary是一样的，setObject不能为空，想移除的话必须使用remove方法</p>
+<p>Strings and text         NS_ASSUME_NONNULL_BEGIN/END</p>
+<ul>
+<li><p>NSString </p>
+</li>
+<li><p>主要是range和index问题</p>
+</li>
+</ul>
+<p>Numbers, Data, and Basic Values</p>
+<ul>
+<li><p>NSValue </p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://nshipster.cn/nsvalue/">NSValue</a> 是用于承载单一的 C 或 Objective-C 数据值的容器。它能承载标量和值类型，也能用于指针和对象 ID。</p>
+</li>
+<li><p>NSURL</p>
+</li>
+<li><p>比较常见的出现crash的类，大部分是NSString转NSURL出现的问题，五花八门，日常要多注意要么用safe的构造器，要么自行判空上报。</p>
+</li>
+<li><p>同NSArray一样，<strong>整个NSURL.h都处于NS_ASSUME_NONNULL_BEGIN/END的包裹下</strong>，对待URL要像Array一样小心。</p>
+</li>
+<li><p>Methods cluster which use filePath string to initialize a filePath URL</p>
+</li>
+<li><ul>
+<li><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcDF1bF8dC">- initFileURLWithPath:isDirectory:relativeToURL:</a></li>
+<li>…</li>
+</ul>
+</li>
+<li><p>Methods cluster which use string to initialize a URL</p>
+</li>
+<li><ul>
+<li><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcR_ndXcp-">- initWithString:</a></li>
+<li><a target="_blank" rel="noopener" href="http://apple-reference-documentation//hcC8WWVdqy">+ URLWithString:</a></li>
+<li>Relative param version…</li>
+</ul>
+</li>
+<li><p>NSData</p>
+</li>
+<li><p>NSRange</p>
+</li>
+</ul>
+<p>Dates and Times</p>
+<ul>
+<li><p>NSDate</p>
+</li>
+<li><p>NSDateFormatter</p>
+</li>
+<li><p>NSDateComponent</p>
+</li>
+</ul>
+<p>Archive and serialization</p>
+<ul>
+<li><p>NSCoding</p>
+</li>
+<li><p>NSJSONSerialization</p>
+</li>
+</ul>
+<p>Syntax Sugar</p>
+<ul>
+<li>NSDictionary</li>
+</ul>
+<p>@{}是[NSDictionary dictionaryWithObjects:forKeys:]的语法糖，两个参数均不允许nil。</p>
+<ul>
+<li>NSArray</li>
+</ul>
+<p>@[]是[NSArray arrayWithObjects:…]的语法糖，参考NSArray，不允许nil。</p>
+<ul>
+<li>NSString</li>
+</ul>
+<p>@””是NSString的语法糖，因为@”xxx”其实在compile time就已经被替换为了constant value，但仍然不是objective-c对象，运行时从constant value转换为objc的NSString对象。</p>
+<blockquote>
+<p>Objective-C provides a shorthand notation for creating NSString objects from constant values.</p>
+</blockquote>
+<ul>
+<li>NSNumber</li>
+</ul>
+<p>@#是NSNumber的语法糖，使用多种构造器构造NSNumber，支持使用后缀进一步指定类型：@42u。</p>
+<ul>
+<li>动态评估</li>
+</ul>
+<p>@()：基于表达式的值返回合适的对象常量（const char *返回NSString，int返回NSNumber等等），这也是数字常量和枚举值的指定方式。</p>
+<p>下标语法</p>
+<p>首先下标语法的本质是填充了这两个方法，并不需要遵守协议，由Clang来保证。</p>
+<pre><code>- (id)objectForKeyedSubscript:(id &lt;NSCopying&gt;)key;//自定义下标key的类型，如果只是希望使用NSUinteger，则可以把id &lt;NSCopying&gt;换成NSInteger
+- (void)setObject:(id)obj forKeyedSubscript:(id &lt;NSCopying&gt;)key;</code></pre>
+<p><a target="_blank" rel="noopener" href="https://nshipster.cn/object-subscripting/">下表语法真正强大的是可以用来定义DSL。</a>但是应该谨慎的判断DSL这种特立独行的东西是否行得通。</p>
+<p>NSArray</p>
+<p>只接受数字下标，只存在越界问题，不存在防空问题。</p>
+<p>NSDictionary</p>
+<p>来看下NSDictionary对上述两个函数的声明</p>
+<pre><code>- (**nullable** ObjectType)objectForKeyedSubscript:(KeyType)key;
+- (**void**)setObject:(**nullable** ObjectType)obj forKeyedSubscript:(KeyType &lt;NSCopying&gt;)key;</code></pre>
+<p>所以对于NSDictionary我们<strong>使用下标语法是可以set nil进去的，**</strong>但是Key永远不能为空**<strong>。需要对key防空。</strong></p>
+<p>需要注意的是，<strong>下标语法跟KVC是两码事。</strong></p>
+<p>使用自定义类的下标语法的时候一定要在interface文件中声明做好是否可以为空的声明。</p>
+
+    </div>
+
+    <div class="totop">ToTOP</div>
+</div>
+        <div class="footer">
+    <a href="#">
+        2018 <i class="fab fa-studiovinari"></i> FOLOBE <i class="fas fa-angle-double-up"></i>
+    </a>
+</div>
+
+
+<script src="/js/totop.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+    </div>
+</body>
+
+</html>
