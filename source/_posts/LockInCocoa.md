@@ -7,7 +7,7 @@ tags:
 目标：
 - iOS下锁的各种使用姿势+性能对比
 iOS下的各种锁的姿势
-先来性能对比：
+先来借用YY大神的一组性能对比：
 
 ![img](image0.png)
 
@@ -77,6 +77,7 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
 pthread_cond_t
 - 当当前线程进入 wait 之后， 当前线程 mutex 会放开，保证其他线程可以拿到锁 mutex 执行，直到收到 signal 信号或者broadcast之后才会唤醒 当前线程，并且 唤醒后再次对 mutex 进行加锁。
+
 ```
 		//条件锁
     pthread_cond_t cond;
@@ -89,7 +90,6 @@ pthread_cond_t
     pthread_cond_init(&cond, &condAttr);
     pthread_cond_init(&cond, NULL);
     //1.放开当前锁 2.使当前线程进入休眠(wait) 3.唤醒后会再次mutex程加锁
-
 即：当线程调用pthread_cond_wait()函数时，会将调用线程放到等待条件的线程列表上，并原子的对互斥量解锁（这样就不会死锁）。当pthread_cond_wait()返回时，互斥量再次锁住。
     pthread_cond_wait(&cond, &mutex);
     //在time之前等待，之后放开锁。
@@ -140,6 +140,7 @@ pthread_rwlock_t
 
 NSLock
 - Cocoa 互斥锁
+
 ```
 NSLock *lock = [NSLock new];//线程1
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -163,6 +164,7 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
 NSCondition
 - Cocoa 封装的pthread_cond_t
+
 ```
 wait：进入等待状态
 waitUntilDate:：让一个线程等待一定的时间

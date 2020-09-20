@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>
+        F010BE
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico" />
+    <link rel="stylesheet" href="/css/style/github.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+    <div class="container">
+        <div class="header">
+    <!-- <div class="logo">
+        <a href="/">F010BE</a>
+    </div> -->
+    <div class="logo">
+        <img src="/images/logo.png" alt="Logo">
+    </div>
+    <div class="nav">
+        <ul class="menu">
+            
+                <li class="menu-item">
+                    <a href="/" class="menu-item-link">
+                        Home
+                    </a>
+                </li>
+            
+                <li class="menu-item">
+                    <a target="_blank" rel="noopener" href="https://github.com/loveminimal" class="menu-item-link">
+                        Github
+                    </a>
+                </li>
+                
+        </ul>
+    </div>
+</div>
+        <div class="article">
+    <!-- <div class="article-title">
+        <h2>
+            RAC
+        </h2>
+    </div> -->
+    <div class="article-meta">
+        <div class="article-date">
+            <i class="fas fa-edit"></i>
+            2020/09/20 Sun 20:49&nbsp;&nbsp;&nbsp;
+            <span class="just-a-temp"><span>
+            <i class="fas fa-redo"></i>
+            2020/09/20 Sun 20:50
+        </div>
+    </div>
+    <div class="article-content">
+        <p>理解RAC</p>
+<p>Framework Overview</p>
+<ul>
+<li><p>Stream</p>
+</li>
+<li><p>RACStream是一个抽象类，stream里的流可以被立刻获取也可以在未来的某个时刻获取（同步或者异步），但是必须是有序的，不能在没有evaluating or waiting 第一个数据的时候就去获取第二个数据。</p>
+</li>
+<li><p>Stream是monad的概念。Stream只是抽象类，subclass后的signal或者sequence更强大。</p>
+</li>
+<li><p>Signal</p>
+</li>
+<li><p><em>RACSignal是一个push-driven</em> <a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/Documentation/FrameworkOverview.md#streams">stream</a> 也就是在每次信号中的出现新的数据时，所有的订阅者都会自动接受到最新的值；</p>
+</li>
+<li><p>信号承载的是未来将会发送过来的数据，在某个时刻，数据会发送给signal，signal会把数据转发给subscriber。</p>
+</li>
+<li><p>对于subscriber来说，signal推送过来的事件有三种类型</p>
+</li>
+<li><p>next：下一个值，也就是data or value</p>
+</li>
+<li><p>error：错误，意思是可能会包含一个NSError，但是error必须被单独处理，不被包含在value里</p>
+</li>
+<li><p>completed：意思是这signal寿终正寝，后面不会有任何事件下发了</p>
+</li>
+<li><p>RAC对大部分的UIKit控件进行了扩展，支持RACSignal。主要包括UITextView，UITextField，UISlider，UIStepper，UIControl，UISwitch，UIActionSheet，UIAlertView，UIDatePicker。</p>
+</li>
+<li><p>Subscription</p>
+</li>
+<li><p>订阅者是一个正在等待事件或者有能力等待事件的东西，可以是任何东西，遵循<a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACSubscriber.h">RACSubscriber</a>这个协议。一个subscription在调用<a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACSignal.h">-subscribeNext:error:completed:</a>的时候创建，大部分的RACStream的operator操作也会创建subscription。一个subscription会持有那个signal，并且<strong>当下发error或者complete的时候被自动丢弃。</strong>当然也可以手动丢弃</p>
+</li>
+<li><p>Subjects</p>
+</li>
+<li><p>RACSubject，是一个被手动控制的signal。RACSubject可以被看作一个signal的mutable版本，可以用与桥接非RAC的code到RAC的环境下。</p>
+</li>
+<li><p>subject有replay的额外功能。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/dad4eebe7b53"><strong>作为热信号，解决了冷信号的订阅问题。</strong></a></p>
+</li>
+<li><p>Commands</p>
+</li>
+<li><p>一个RACCommand，创建并订阅一个RACSignal，用来perform一些side effect的动作。</p>
+</li>
+<li><p>提供了disabled的便捷方法，对应一些UI元素的状态。</p>
+</li>
+<li><p>常见的有UIButton，UIBarButtonItem，UIRefreshControl</p>
+</li>
+<li><p>Connections</p>
+</li>
+<li><p>RACMulticastConnection，是一个subscription，在一个signal的所有的subscriber中共享。RACSignal默认是冷信号，意味着每一个订阅者订阅（一个新的subscription添加）的时候都会触发做一些事情。这是符合预期的，但是有一些情况下我们希望避免这种行为，比如signal做的事情消耗太多或者有side effect。</p>
+</li>
+<li><p>通过RACSignal的-publish or -multicast:来创建一个connection，并且保证在connection和signal之间只创建了一个隐式的subscription，不论connection本身被订阅了多少次。</p>
+</li>
+<li><p>Sequences</p>
+</li>
+<li><p>sequence是一个*<strong>pull-driven stream。*</strong>在signal的value改变时并不会通知使用当前序列的对象，只有使用者再次从这个 RACSequence 对象中获取数据才能更新，它的更新是需要使用者自己拉取的 </p>
+</li>
+<li><p>存在eagerSequence和lazySequence两种，一般用eager即可。</p>
+</li>
+<li><p>RACSequence和RACSignal可以相互转换</p>
+</li>
+</ul>
+<pre><code>RACSequence *sequence = @[@1, @2, @3].rac_sequence;
+RACSignal *signal = sequence.signal;[signal subscribeNext:^(id  _Nullable x) &#123;
+  NSLog(@&quot;%@&quot;, x);&#125;];
+RACSignal *signal = [RACSignal createSignal:^RACDisposable * _Nullable(id&lt;RACSubscriber&gt;  _Nonnull subscriber) &#123;
+  [subscriber sendNext:@1];
+  [subscriber sendNext:@2];
+  [subscriber sendNext:@3];
+  [subscriber sendCompleted];
+  return nil;&#125;];NSLog(@&quot;%@&quot;, signal.toArray.rac_sequence);</code></pre>
+<ul>
+<li><p>Disposables</p>
+</li>
+<li><p>用来cancellation and resource cleanup。</p>
+</li>
+<li><p>最常见的是取消对一个signal的订阅。</p>
+</li>
+<li><p>Schedulers</p>
+</li>
+<li><p>类似于GCD的queue，但是支持取消【GCD也支持，相对繁琐一些】</p>
+</li>
+<li><p>不提供sync方法，防止思索。</p>
+</li>
+<li><p>鼓励使用signal operator而不是用block完成。</p>
+</li>
+<li><p>Value types</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACTuple.h"><strong>RACTuple</strong></a> is a small, constant-sized collection that can contain nil (represented by RACTupleNil). It is generally used to represent the combined values of multiple streams.</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACUnit.h"><strong>RACUnit</strong></a> is a singleton “empty” value. It is used as a value in a stream for those times when more meaningful data doesn’t exist.</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACEvent.h"><strong>RACEvent</strong></a> represents any <a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/Documentation/FrameworkOverview.md#signals">signal event</a> as a single value. It is primarily used by the -materialize method of <a target="_blank" rel="noopener" href="https://github.com/ReactiveCocoa/ReactiveObjC/blob/master/ReactiveObjC/RACSignal+Operations.h">RACSignal</a>.</p>
+</li>
+</ul>
+<p>Basic operations</p>
+<p>Performing side effect with signal</p>
+<p>大部分的signal都是cold的，在没有subscription之前不会做任何事情。依赖Subscription，signal或者subscriber可以做一些side effect的事情，比如打印log，网络请求，更新UI等。</p>
+<p>Subscription </p>
+<ul>
+<li>subscribe操作让你可以接入这个signal当前和未来的值。</li>
+</ul>
+<pre><code>RACSignal *letters = [@&quot;A B C D E F G H I&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence.signal;
+// Outputs: A B C D E F G H I
+[letters subscribeNext:^(NSString *x) &#123;
+  NSLog(@&quot;%@&quot;, x);
+&#125;];</code></pre>
+<p>Perform side effect like this:</p>
+<pre><code>__block unsigned subscriptions = 0;
+RACSignal *loggingSignal = [RACSignal createSignal:^ RACDisposable * (id&lt;RACSubscriber&gt; subscriber) &#123;
+  subscriptions++;
+  [subscriber sendCompleted];
+  return nil;
+&#125;];
+// Outputs:// subscription 1
+[loggingSignal subscribeCompleted:^&#123;
+  NSLog(@&quot;subscription %u&quot;, subscriptions);
+&#125;];
+// Outputs:// subscription 2
+[loggingSignal subscribeCompleted:^&#123;
+  NSLog(@&quot;subscription %u&quot;, subscriptions);
+&#125;];</code></pre>
+<p>Side effect就是一个没创建一次loggingSignal就会增加一次subscriptions这个变量的值，这个值会被subscribe的时候使用，所以就是side effect。要特别谨慎side effect的使用。</p>
+<p>除了上面这种直接在signal创建的时候使用的side effect的方法，我们还可以【注入】side effect。</p>
+<p>使用-do方法，可以让一个sinal在每次被订阅的时候都执行一次。</p>
+<pre><code>__block unsigned subscriptions = 0;
+RACSignal *loggingSignal = [RACSignal createSignal:^ RACDisposable * (id&lt;RACSubscriber&gt; subscriber) &#123;
+  subscriptions++;
+  [subscriber sendCompleted];
+  return nil;
+&#125;];
+// Does not output anything yet
+//在这里注入了
+loggingSignal = [loggingSignal doCompleted:^&#123;
+  NSLog(@&quot;about to complete subscription %u&quot;, subscriptions);
+&#125;];
+// Outputs:
+// about to complete subscription 1
+// subscription 1
+[loggingSignal subscribeCompleted:^&#123;
+  NSLog(@&quot;subscription %u&quot;, subscriptions);
+&#125;];</code></pre>
+<p>Transforming streams</p>
+<p>进行单一到单一的变换</p>
+<p>Mapping</p>
+<p>Filtering</p>
+<p>Combining streams</p>
+<p>组合多个流为一个流</p>
+<p>Concat </p>
+<pre><code>RACSequence *letters = [@&quot;A B C D E F G H I&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence;
+RACSequence *numbers = [@&quot;1 2 3 4 5 6 7 8 9&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence;
+// Contains: A B C D E F G H I 1 2 3 4 5 6 7 8 9
+RACSequence *concatenated = [letters concat:numbers];</code></pre>
+<p>Flatten</p>
+<pre><code>RACSequence *letters = [@&quot;A B C D E F G H I&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence;
+RACSequence *numbers = [@&quot;1 2 3 4 5 6 7 8 9&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence;
+RACSequence *sequenceOfSequences = @[ letters, numbers ].rac_sequence;
+// Contains: A B C D E F G H I 1 2 3 4 5 6 7 8 9
+RACSequence *flattened = [sequenceOfSequences flatten];</code></pre>
+<p>Mapping and flattening</p>
+<pre><code>RACSequence *numbers = [@&quot;1 2 3 4 5 6 7 8 9&quot; componentsSeparatedByString:@&quot; &quot;].rac_sequence;
+// Contains: 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+RACSequence *extended = [numbers flattenMap:^(NSString *num) &#123;
+  return @[ num, num ].rac_sequence;
+&#125;];
+// Contains: 1_ 3_ 5_ 7_ 9_
+RACSequence *edited = [numbers flattenMap:^(NSString *num) &#123;
+  if (num.intValue % 2 == 0) &#123;
+    return [RACSequence empty];
+  &#125; else &#123;
+    NSString *newNum = [num stringByAppendingString:@&quot;_&quot;];
+    return [RACSequence return:newNum];
+  &#125;
+&#125;];</code></pre>
+<p>Combining signals</p>
+<p>Sequencing</p>
+<p>Merging</p>
+<p>Combining latest values</p>
+<p>Switching</p>
+
+    </div>
+
+    <div class="totop">ToTOP</div>
+</div>
+        <div class="footer">
+    <a href="#">
+        2018 <i class="fab fa-studiovinari"></i> FOLOBE <i class="fas fa-angle-double-up"></i>
+    </a>
+</div>
+
+
+<script src="/js/totop.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+    </div>
+</body>
+
+</html>

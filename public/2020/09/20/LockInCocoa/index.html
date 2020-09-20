@@ -57,13 +57,13 @@
             2020/09/20 Sun 14:24&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/20 Sun 20:37
+            2020/09/20 Sun 20:46
         </div>
     </div>
     <div class="article-content">
         <p>【Jan】Lock in iOS &amp; OSX<br>目标：</p>
 <ul>
-<li>iOS下锁的各种使用姿势+性能对比<br>iOS下的各种锁的姿势<br>先来性能对比：</li>
+<li>iOS下锁的各种使用姿势+性能对比<br>iOS下的各种锁的姿势<br>先来借用YY大神的一组性能对比：</li>
 </ul>
 <p><img src="image0.png" alt="img"></p>
 <p>OSSpinlock：</p>
@@ -128,26 +128,37 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&
 </ul>
 <p>pthread_cond_t</p>
 <ul>
-<li>当当前线程进入 wait 之后， 当前线程 mutex 会放开，保证其他线程可以拿到锁 mutex 执行，直到收到 signal 信号或者broadcast之后才会唤醒 当前线程，并且 唤醒后再次对 mutex 进行加锁。<pre><code>      //条件锁
-  pthread_cond_t cond;
-  //静态初始化
-  pthread_cond_t cond2 = PTHREAD_COND_INITIALIZER;
-  pthread_condattr_t condAttr;
-  //初始化attr参数
-  pthread_condattr_init(&amp;condAttr);
-  //动态初始化，也可不传attr参数
-  pthread_cond_init(&amp;cond, &amp;condAttr);
-  pthread_cond_init(&amp;cond, NULL);
-  //1.放开当前锁 2.使当前线程进入休眠(wait) 3.唤醒后会再次mutex程加锁
-</code></pre>
-</li>
+<li>当当前线程进入 wait 之后， 当前线程 mutex 会放开，保证其他线程可以拿到锁 mutex 执行，直到收到 signal 信号或者broadcast之后才会唤醒 当前线程，并且 唤醒后再次对 mutex 进行加锁。</li>
 </ul>
-<p>即：当线程调用pthread_cond_wait()函数时，会将调用线程放到等待条件的线程列表上，并原子的对互斥量解锁（这样就不会死锁）。当pthread_cond_wait()返回时，互斥量再次锁住。<br>    pthread_cond_wait(&amp;cond, &amp;mutex);<br>    //在time之前等待，之后放开锁。<br>    pthread_cond_timedwait(&amp;cond, &amp;mutex, const struct timespec *restrict _Nullable);<br>    //唤醒一个被wait的线程<br>    pthread_cond_signal(&amp;cond);<br>    //唤醒所有被wait的线程<br>    pthread_cond_broadcast(&amp;cond);<br>    //销毁attr 和cond<br>    pthread_condattr_destroy(&amp;condAttr);<br>    pthread_cond_destroy(&amp;cond);</p>
-<pre><code>
-pthread_rwlock_t
-- 读写锁,(互斥锁的进化)分为读锁(rlock)和写锁(wlock),可以有多个线程共同持有读锁，但是写锁只能有一个线程持有，如果读锁被持有是，写锁是不能持有的。需要等待读锁unlock 才能持有写锁,同样需要写锁unlock才能持有读锁。</code></pre>
-<p>//静态初始化<br>        pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;<br>        _rwlock = lock;<br>//动态初始化<br>        pthread_rwlockattr_init(&amp;_rwlock_attr);<br>        pthread_rwlock_init(&amp;_rwlock, &amp;_rwlock_attr);</p>
+<pre><code>        //条件锁
+    pthread_cond_t cond;
+    //静态初始化
+    pthread_cond_t cond2 = PTHREAD_COND_INITIALIZER;
+    pthread_condattr_t condAttr;
+    //初始化attr参数
+    pthread_condattr_init(&amp;condAttr);
+    //动态初始化，也可不传attr参数
+    pthread_cond_init(&amp;cond, &amp;condAttr);
+    pthread_cond_init(&amp;cond, NULL);
+    //1.放开当前锁 2.使当前线程进入休眠(wait) 3.唤醒后会再次mutex程加锁
+即：当线程调用pthread_cond_wait()函数时，会将调用线程放到等待条件的线程列表上，并原子的对互斥量解锁（这样就不会死锁）。当pthread_cond_wait()返回时，互斥量再次锁住。
+    pthread_cond_wait(&amp;cond, &amp;mutex);
+    //在time之前等待，之后放开锁。
+    pthread_cond_timedwait(&amp;cond, &amp;mutex, const struct timespec *restrict _Nullable);
+    //唤醒一个被wait的线程
+    pthread_cond_signal(&amp;cond);
+    //唤醒所有被wait的线程
+    pthread_cond_broadcast(&amp;cond);
+    //销毁attr 和cond
+    pthread_condattr_destroy(&amp;condAttr);
+    pthread_cond_destroy(&amp;cond);</code></pre>
+<p>pthread_rwlock_t</p>
 <ul>
+<li>读写锁,(互斥锁的进化)分为读锁(rlock)和写锁(wlock),可以有多个线程共同持有读锁，但是写锁只能有一个线程持有，如果读锁被持有是，写锁是不能持有的。需要等待读锁unlock 才能持有写锁,同样需要写锁unlock才能持有读锁。<br>```<br>//静态初始化<pre><code>  pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
+  _rwlock = lock;</code></pre>
+//动态初始化<pre><code>  pthread_rwlockattr_init(&amp;_rwlock_attr);
+  pthread_rwlock_init(&amp;_rwlock, &amp;_rwlock_attr);</code></pre>
+</li>
 <li>(void)__add {<br>//写锁上锁<br>  pthread_rwlock_wrlock(&amp;_rwlock);<br>  [super __add];<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
 <li>(void)__readArr {<br>//读锁上锁<br>  pthread_rwlock_rdlock(&amp;_rwlock);<br>  NSLog(@”self.lockArr=%@”,self.lockArray);<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
 <li>(void)dealloc {<br>//销毁 锁 &amp; 锁的属性<br>  pthread_rwlockattr_destroy(&amp;_rwlock_attr);<br>  pthread_rwlock_destroy(&amp;_rwlock);<br>}<br>/*<ul>
@@ -159,34 +170,34 @@ pthread_rwlock_t
 </ul>
 <p>NSLock</p>
 <ul>
-<li>Cocoa 互斥锁<pre><code>NSLock *lock = [NSLock new];//线程1
+<li>Cocoa 互斥锁</li>
+</ul>
+<pre><code>NSLock *lock = [NSLock new];//线程1
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
-  NSLog(@&quot;线程1 尝试加速ing...&quot;);
-  [lock lock];
-  sleep(3);//睡眠5秒
-  NSLog(@&quot;线程1&quot;);
-  [lock unlock];
-  NSLog(@&quot;线程1解锁成功&quot;);&#125;);
+    NSLog(@&quot;线程1 尝试加速ing...&quot;);
+    [lock lock];
+    sleep(3);//睡眠5秒
+    NSLog(@&quot;线程1&quot;);
+    [lock unlock];
+    NSLog(@&quot;线程1解锁成功&quot;);&#125;);
 //线程2
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
-  NSLog(@&quot;线程2 尝试加速ing...&quot;);
-  BOOL x =  [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:4]];
-  if (x) &#123;
-      NSLog(@&quot;线程2&quot;);
-      [lock unlock];
-  &#125;else&#123;
-      NSLog(@&quot;失败&quot;);
-  &#125;&#125;);</code></pre>
-</li>
-</ul>
+    NSLog(@&quot;线程2 尝试加速ing...&quot;);
+    BOOL x =  [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:4]];
+    if (x) &#123;
+        NSLog(@&quot;线程2&quot;);
+        [lock unlock];
+    &#125;else&#123;
+        NSLog(@&quot;失败&quot;);
+    &#125;&#125;);</code></pre>
 <p>NSCondition</p>
 <ul>
-<li>Cocoa 封装的pthread_cond_t<pre><code>wait：进入等待状态
+<li>Cocoa 封装的pthread_cond_t</li>
+</ul>
+<pre><code>wait：进入等待状态
 waitUntilDate:：让一个线程等待一定的时间
 signal：唤醒一个等待的线程
 broadcast：唤醒所有等待的线程</code></pre>
-</li>
-</ul>
 <p>NSRecursiveLock</p>
 <ul>
 <li>cocoa封装的pthread_mutex recursive<br>@synchronized</li>
