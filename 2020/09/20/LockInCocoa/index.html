@@ -57,7 +57,7 @@
             2020/09/20 Sun 14:24&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/20 Sun 20:46
+            2020/09/20 Sun 21:00
         </div>
     </div>
     <div class="article-content">
@@ -154,20 +154,38 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&
     pthread_cond_destroy(&amp;cond);</code></pre>
 <p>pthread_rwlock_t</p>
 <ul>
-<li>读写锁,(互斥锁的进化)分为读锁(rlock)和写锁(wlock),可以有多个线程共同持有读锁，但是写锁只能有一个线程持有，如果读锁被持有是，写锁是不能持有的。需要等待读锁unlock 才能持有写锁,同样需要写锁unlock才能持有读锁。<br>```<br>//静态初始化<pre><code>  pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
-  _rwlock = lock;</code></pre>
-//动态初始化<pre><code>  pthread_rwlockattr_init(&amp;_rwlock_attr);
-  pthread_rwlock_init(&amp;_rwlock, &amp;_rwlock_attr);</code></pre>
-</li>
-<li>(void)__add {<br>//写锁上锁<br>  pthread_rwlock_wrlock(&amp;_rwlock);<br>  [super __add];<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
-<li>(void)__readArr {<br>//读锁上锁<br>  pthread_rwlock_rdlock(&amp;_rwlock);<br>  NSLog(@”self.lockArr=%@”,self.lockArray);<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
-<li>(void)dealloc {<br>//销毁 锁 &amp; 锁的属性<br>  pthread_rwlockattr_destroy(&amp;_rwlock_attr);<br>  pthread_rwlock_destroy(&amp;_rwlock);<br>}<br>/*<ul>
-<li>Mutex type attributes</li>
-<li>/<br>#define PTHREAD_MUTEX_NORMAL                0<br>#define PTHREAD_MUTEX_ERRORCHECK        1<br>#define PTHREAD_MUTEX_RECURSIVE                2<br>#define PTHREAD_MUTEX_DEFAULT                PTHREAD_MUTEX_NORMAL<pre><code></code></pre>
-</li>
+<li>读写锁,(互斥锁的进化)分为读锁(rlock)和写锁(wlock),可以有多个线程共同持有读锁，但是写锁只能有一个线程持有，如果读锁被持有是，写锁是不能持有的。需要等待读锁unlock 才能持有写锁,同样需要写锁unlock才能持有读锁。</li>
 </ul>
-</li>
-</ul>
+<pre><code>//静态初始化
+        pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
+        _rwlock = lock;
+//动态初始化
+        pthread_rwlockattr_init(&amp;_rwlock_attr);
+        pthread_rwlock_init(&amp;_rwlock, &amp;_rwlock_attr);
+- (void)__add &#123;
+//写锁上锁
+    pthread_rwlock_wrlock(&amp;_rwlock);
+    [super __add];
+    pthread_rwlock_unlock(&amp;_rwlock);
+&#125;
+- (void)__readArr &#123;
+//读锁上锁
+    pthread_rwlock_rdlock(&amp;_rwlock);
+    NSLog(@&quot;self.lockArr=%@&quot;,self.lockArray);
+    pthread_rwlock_unlock(&amp;_rwlock);
+&#125;
+- (void)dealloc &#123;
+//销毁 锁 &amp; 锁的属性
+    pthread_rwlockattr_destroy(&amp;_rwlock_attr);
+    pthread_rwlock_destroy(&amp;_rwlock);
+&#125;
+/*
+ * Mutex type attributes
+ */
+#define PTHREAD_MUTEX_NORMAL                0
+#define PTHREAD_MUTEX_ERRORCHECK        1
+#define PTHREAD_MUTEX_RECURSIVE                2
+#define PTHREAD_MUTEX_DEFAULT                PTHREAD_MUTEX_NORMAL</code></pre>
 <p>NSLock</p>
 <ul>
 <li>Cocoa 互斥锁</li>
