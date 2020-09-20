@@ -57,7 +57,7 @@
             2020/09/20 Sun 14:24&nbsp;&nbsp;&nbsp;
             <span class="just-a-temp"><span>
             <i class="fas fa-redo"></i>
-            2020/09/20 Sun 20:45
+            2020/09/20 Sun 20:46
         </div>
     </div>
     <div class="article-content">
@@ -170,34 +170,34 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&
 </ul>
 <p>NSLock</p>
 <ul>
-<li>Cocoa 互斥锁<pre><code>NSLock *lock = [NSLock new];//线程1
+<li>Cocoa 互斥锁</li>
+</ul>
+<pre><code>NSLock *lock = [NSLock new];//线程1
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
-  NSLog(@&quot;线程1 尝试加速ing...&quot;);
-  [lock lock];
-  sleep(3);//睡眠5秒
-  NSLog(@&quot;线程1&quot;);
-  [lock unlock];
-  NSLog(@&quot;线程1解锁成功&quot;);&#125;);
+    NSLog(@&quot;线程1 尝试加速ing...&quot;);
+    [lock lock];
+    sleep(3);//睡眠5秒
+    NSLog(@&quot;线程1&quot;);
+    [lock unlock];
+    NSLog(@&quot;线程1解锁成功&quot;);&#125;);
 //线程2
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
-  NSLog(@&quot;线程2 尝试加速ing...&quot;);
-  BOOL x =  [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:4]];
-  if (x) &#123;
-      NSLog(@&quot;线程2&quot;);
-      [lock unlock];
-  &#125;else&#123;
-      NSLog(@&quot;失败&quot;);
-  &#125;&#125;);</code></pre>
-</li>
-</ul>
+    NSLog(@&quot;线程2 尝试加速ing...&quot;);
+    BOOL x =  [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:4]];
+    if (x) &#123;
+        NSLog(@&quot;线程2&quot;);
+        [lock unlock];
+    &#125;else&#123;
+        NSLog(@&quot;失败&quot;);
+    &#125;&#125;);</code></pre>
 <p>NSCondition</p>
 <ul>
-<li>Cocoa 封装的pthread_cond_t<pre><code>wait：进入等待状态
+<li>Cocoa 封装的pthread_cond_t</li>
+</ul>
+<pre><code>wait：进入等待状态
 waitUntilDate:：让一个线程等待一定的时间
 signal：唤醒一个等待的线程
 broadcast：唤醒所有等待的线程</code></pre>
-</li>
-</ul>
 <p>NSRecursiveLock</p>
 <ul>
 <li>cocoa封装的pthread_mutex recursive<br>@synchronized</li>
