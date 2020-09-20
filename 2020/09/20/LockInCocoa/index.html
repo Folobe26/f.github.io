@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>
+        F010BE
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico" />
+    <link rel="stylesheet" href="/css/style/github.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+    <div class="container">
+        <div class="header">
+    <!-- <div class="logo">
+        <a href="/">F010BE</a>
+    </div> -->
+    <div class="logo">
+        <img src="/images/logo.png" alt="Logo">
+    </div>
+    <div class="nav">
+        <ul class="menu">
+            
+                <li class="menu-item">
+                    <a href="/" class="menu-item-link">
+                        Home
+                    </a>
+                </li>
+            
+                <li class="menu-item">
+                    <a target="_blank" rel="noopener" href="https://github.com/loveminimal" class="menu-item-link">
+                        Github
+                    </a>
+                </li>
+                
+        </ul>
+    </div>
+</div>
+        <div class="article">
+    <!-- <div class="article-title">
+        <h2>
+            LockInCocoa
+        </h2>
+    </div> -->
+    <div class="article-meta">
+        <div class="article-date">
+            <i class="fas fa-edit"></i>
+            2020/09/20 Sun 14:24&nbsp;&nbsp;&nbsp;
+            <span class="just-a-temp"><span>
+            <i class="fas fa-redo"></i>
+            2020/09/20 Sun 20:37
+        </div>
+    </div>
+    <div class="article-content">
+        <p>【Jan】Lock in iOS &amp; OSX<br>目标：</p>
+<ul>
+<li>iOS下锁的各种使用姿势+性能对比<br>iOS下的各种锁的姿势<br>先来性能对比：</li>
+</ul>
+<p><img src="image0.png" alt="img"></p>
+<p>OSSpinlock：</p>
+<ul>
+<li>自旋锁：如果锁没有释放就不停的循环尝试获取锁</li>
+<li>API：<pre><code>OS_SPINLOCK_INIT： 默认值为 0,在 locked 状态时就会大于 0，unlocked状态下为 0
+OSSpinLockLock(&amp;oslock)：上锁，参数为 OSSpinLock 地址
+OSSpinLockUnlock(&amp;oslock)：解锁，参数为 OSSpinLock 地址
+OSSpinLockTry(&amp;oslock)：尝试加锁，可以加锁则立即加锁并返回 YES,反之返回 NO</code></pre>
+</li>
+</ul>
+<p>os_unfair_lock</p>
+<ul>
+<li>用于取代OSSpinlock</li>
+<li>互斥锁，非自旋锁，但性能极高<pre><code>  #import &lt;os/lock.h&gt;
+  //静态初始化
+  os_unfair_lock lock = OS_UNFAIR_LOCK_INIT;
+  //加锁
+  os_unfair_lock_lock(&amp;lock);
+  bool isCanLock = os_unfair_lock_trylock(&amp;lock);
+  //解锁
+  os_unfair_lock_unlock(&amp;lock);</code></pre>
+</li>
+</ul>
+<p>pthread_mutex_t</p>
+<ul>
+<li>通常意义上的互斥锁<pre><code>static pthread_mutex_t pLock;pthread_mutex_init(&amp;pLock, NULL);
+//1.线程1
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+  NSLog(@&quot;线程1 准备上锁&quot;);
+  pthread_mutex_lock(&amp;pLock);
+  sleep(3);
+  NSLog(@&quot;线程1&quot;);
+  pthread_mutex_unlock(&amp;pLock);&#125;);
+//1.线程2
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+  NSLog(@&quot;线程2 准备上锁&quot;);
+  pthread_mutex_lock(&amp;pLock);
+  NSLog(@&quot;线程2&quot;);
+  pthread_mutex_unlock(&amp;pLock);&#125;);</code></pre>
+</li>
+</ul>
+<p>pthread_mutex_t(recursive)</p>
+<ul>
+<li>前面的锁在加锁后只能有一个线程访问该对象，后面的线程需要排队，并且 lock 和 unlock 是对应出现的，同一线程多次 lock 是不允许的，而递归锁允许同一个线程在未释放其拥有的锁时反复对该锁进行加锁操作。本质上这个是pthread_mutext_t的一种可选特性。<pre><code>static pthread_mutex_t pLock;
+pthread_mutexattr_t attr;pthread_mutexattr_init(&amp;attr); //初始化attr并且给它赋予默认
+pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_RECURSIVE); //设置锁类型，这边是设置为递归锁
+pthread_mutex_init(&amp;pLock, &amp;attr);pthread_mutexattr_destroy(&amp;attr); //销毁一个属性对象，在重新进行初始化之前该结构不能重新使用
+//1.线程1
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+  static void (^RecursiveBlock)(int);
+  RecursiveBlock = ^(int value) &#123;
+      pthread_mutex_lock(&amp;pLock);
+      if (value &gt; 0) &#123;
+          NSLog(@&quot;value: %d&quot;, value);
+          RecursiveBlock(value - 1);
+      &#125;
+      pthread_mutex_unlock(&amp;pLock);
+  &#125;;
+  RecursiveBlock(5);&#125;);</code></pre>
+</li>
+</ul>
+<p>pthread_cond_t</p>
+<ul>
+<li>当当前线程进入 wait 之后， 当前线程 mutex 会放开，保证其他线程可以拿到锁 mutex 执行，直到收到 signal 信号或者broadcast之后才会唤醒 当前线程，并且 唤醒后再次对 mutex 进行加锁。<pre><code>      //条件锁
+  pthread_cond_t cond;
+  //静态初始化
+  pthread_cond_t cond2 = PTHREAD_COND_INITIALIZER;
+  pthread_condattr_t condAttr;
+  //初始化attr参数
+  pthread_condattr_init(&amp;condAttr);
+  //动态初始化，也可不传attr参数
+  pthread_cond_init(&amp;cond, &amp;condAttr);
+  pthread_cond_init(&amp;cond, NULL);
+  //1.放开当前锁 2.使当前线程进入休眠(wait) 3.唤醒后会再次mutex程加锁
+</code></pre>
+</li>
+</ul>
+<p>即：当线程调用pthread_cond_wait()函数时，会将调用线程放到等待条件的线程列表上，并原子的对互斥量解锁（这样就不会死锁）。当pthread_cond_wait()返回时，互斥量再次锁住。<br>    pthread_cond_wait(&amp;cond, &amp;mutex);<br>    //在time之前等待，之后放开锁。<br>    pthread_cond_timedwait(&amp;cond, &amp;mutex, const struct timespec *restrict _Nullable);<br>    //唤醒一个被wait的线程<br>    pthread_cond_signal(&amp;cond);<br>    //唤醒所有被wait的线程<br>    pthread_cond_broadcast(&amp;cond);<br>    //销毁attr 和cond<br>    pthread_condattr_destroy(&amp;condAttr);<br>    pthread_cond_destroy(&amp;cond);</p>
+<pre><code>
+pthread_rwlock_t
+- 读写锁,(互斥锁的进化)分为读锁(rlock)和写锁(wlock),可以有多个线程共同持有读锁，但是写锁只能有一个线程持有，如果读锁被持有是，写锁是不能持有的。需要等待读锁unlock 才能持有写锁,同样需要写锁unlock才能持有读锁。</code></pre>
+<p>//静态初始化<br>        pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;<br>        _rwlock = lock;<br>//动态初始化<br>        pthread_rwlockattr_init(&amp;_rwlock_attr);<br>        pthread_rwlock_init(&amp;_rwlock, &amp;_rwlock_attr);</p>
+<ul>
+<li>(void)__add {<br>//写锁上锁<br>  pthread_rwlock_wrlock(&amp;_rwlock);<br>  [super __add];<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
+<li>(void)__readArr {<br>//读锁上锁<br>  pthread_rwlock_rdlock(&amp;_rwlock);<br>  NSLog(@”self.lockArr=%@”,self.lockArray);<br>  pthread_rwlock_unlock(&amp;_rwlock);<br>}</li>
+<li>(void)dealloc {<br>//销毁 锁 &amp; 锁的属性<br>  pthread_rwlockattr_destroy(&amp;_rwlock_attr);<br>  pthread_rwlock_destroy(&amp;_rwlock);<br>}<br>/*<ul>
+<li>Mutex type attributes</li>
+<li>/<br>#define PTHREAD_MUTEX_NORMAL                0<br>#define PTHREAD_MUTEX_ERRORCHECK        1<br>#define PTHREAD_MUTEX_RECURSIVE                2<br>#define PTHREAD_MUTEX_DEFAULT                PTHREAD_MUTEX_NORMAL<pre><code></code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<p>NSLock</p>
+<ul>
+<li>Cocoa 互斥锁<pre><code>NSLock *lock = [NSLock new];//线程1
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+  NSLog(@&quot;线程1 尝试加速ing...&quot;);
+  [lock lock];
+  sleep(3);//睡眠5秒
+  NSLog(@&quot;线程1&quot;);
+  [lock unlock];
+  NSLog(@&quot;线程1解锁成功&quot;);&#125;);
+//线程2
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+  NSLog(@&quot;线程2 尝试加速ing...&quot;);
+  BOOL x =  [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:4]];
+  if (x) &#123;
+      NSLog(@&quot;线程2&quot;);
+      [lock unlock];
+  &#125;else&#123;
+      NSLog(@&quot;失败&quot;);
+  &#125;&#125;);</code></pre>
+</li>
+</ul>
+<p>NSCondition</p>
+<ul>
+<li>Cocoa 封装的pthread_cond_t<pre><code>wait：进入等待状态
+waitUntilDate:：让一个线程等待一定的时间
+signal：唤醒一个等待的线程
+broadcast：唤醒所有等待的线程</code></pre>
+</li>
+</ul>
+<p>NSRecursiveLock</p>
+<ul>
+<li>cocoa封装的pthread_mutex recursive<br>@synchronized</li>
+<li>使用最简单的锁，但是有性能问题，慎用</li>
+<li>背后的设计参考这篇文章 <a target="_blank" rel="noopener" href="http://rykap.com/objective-c/2015/05/09/synchronized/">http://rykap.com/objective-c/2015/05/09/synchronized/</a></li>
+</ul>
+<p>NSConditionLock</p>
+<pre><code>NSConditionLock *cLock = [[NSConditionLock alloc] initWithCondition:0];
+//线程1
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+    if([cLock tryLockWhenCondition:0])&#123;
+        NSLog(@&quot;线程1&quot;);
+       [cLock unlockWithCondition:1];
+    &#125;else&#123;
+         NSLog(@&quot;失败&quot;);
+    &#125;&#125;);
+//线程2
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+    [cLock lockWhenCondition:3];
+    NSLog(@&quot;线程2&quot;);
+    [cLock unlockWithCondition:2];&#125;);
+//线程3
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;
+    [cLock lockWhenCondition:1];
+    NSLog(@&quot;线程3&quot;);
+    [cLock unlockWithCondition:3];&#125;);</code></pre>
+
+    </div>
+
+    <div class="totop">ToTOP</div>
+</div>
+        <div class="footer">
+    <a href="#">
+        2018 <i class="fab fa-studiovinari"></i> FOLOBE <i class="fas fa-angle-double-up"></i>
+    </a>
+</div>
+
+
+<script src="/js/totop.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+    </div>
+</body>
+
+</html>
